@@ -116,12 +116,12 @@ public:
 class User{
 private:
     string firstName, lastName, email, address, phone;
-    int customer_id, age; 
+    int customer_id, age, account_number; 
     vector<Account*> accounts;
 
 public:
     User(int customer_id, string firstName, string lastName, string email, string address, string phone, int age)
-        : customer_id(customer_id), firstName(firstName), lastName(lastName), email(email), address(address), phone(phone), age(age) {}
+        : customer_id(customer_id), firstName(firstName), lastName(lastName), email(email), address(address), phone(phone), age(age), account_number(1) {}
 
     int getCustomerId(){
         return customer_id;
@@ -129,51 +129,6 @@ public:
     int getAge(){
         return age;
     }
-
-    void getDetails(){
-        cout << "Customer Id : " << customer_id << "\n";
-        cout << "Full Name : " <<firstName << " "<< lastName << "\n";
-        cout << "Email : " << email << "\n";
-        cout << "Address : " << address << "\n";
-        cout << "Phone Number : " << phone << "\n";
-    }
-
-    double getTotalAmount(){
-        // Run loop over accounts and calculate total amount
-        double totalBalance = 0;
-        for(auto p : accounts){
-            totalBalance += p->getBalance();
-        }
-        return totalBalance;
-    }
-
-    void getAccount(){
-        cout << "--------------------- User Accounts -----------------------\n";
-        for(auto account : accounts){
-            cout << "Account Number : " << account->getAccountNumber() << ", Balance : " << account->getBalance() << "\n";
-        }
-        return;
-    }
-};
-
-class Bank{
-private:
-    vector<User*> users;
-    vector<Account*> accounts;
-    int customer_id;
-    int account_number;
-
-public:
-    // As soon as the bank created it will initialise customerID and accountNumber
-    Bank(): customer_id(1), account_number(1) {}
-
-    // create user
-    User* create_user(string firstName, string lastName, string email, string address, string phone, int age){
-        User* user = new User(customer_id++, firstName, lastName, email, address, phone, age);
-        users.push_back(user);
-        return user;
-    }
-
     // create account
     Account* create_account(int customer_id, Account::Type type, double balance, string opening_date, int age) {
 
@@ -234,19 +189,49 @@ public:
         
     }
 
+    void getDetails(){
+        cout << "------------------ User Details --------------------\n";
+        cout << "Customer Id : " << customer_id << "\n";
+        cout << "Full Name : " <<firstName << " "<< lastName << "\n";
+        cout << "Email : " << email << "\n";
+        cout << "Address : " << address << "\n";
+        cout << "Phone Number : " << phone << "\n";
+    }
+
+    double getTotalAmount(){
+        // Run loop over accounts and calculate total amount
+        double totalBalance = 0;
+        for(auto p : accounts){
+            totalBalance += p->getBalance();
+        }
+        return totalBalance;
+    }
+
+    void getAccount(){
+        cout << "--------------------- User Accounts -----------------------\n";
+        for(auto account : accounts){
+            cout << "Account Number : " << account->getAccountNumber() << ", Balance : " << account->getBalance() << "\n";
+        }
+        return;
+    }
 };
 
+class Bank{
+private:
+    vector<User*> users;
+    int customer_id;
 
-void signUp(){
-    // customerId = generate_customer_id();
-    // // Create User
-    // personalDetails.emplace(customerId, make_pair(vector<string>{firstName, lastName, email, address, phone, age}, vector<string>{accountNumber}));
-    // // Account details
-    // accountDetails[accountNumber] = {customerId,firstName, lastName, email, address, phone, age, accountType, balance, openingDate};
-
-    // cout << "Account Created succesfully!\nYour Customer Id = " << customerId << "\nYour Account Number = " << accountNumber << "\n";
-
-}
+public:
+    // As soon as the bank created it will initialise customerID and accountNumber
+    Bank(): customer_id(1) {}
+    
+    // create user
+    User* create_user(string firstName, string lastName, string email, string address, string phone, int age){
+        User* user = new User(customer_id++, firstName, lastName, email, address, phone, age);
+        users.push_back(user);
+        return user;
+    }
+};
 
 int main(){
     // Create Bank
@@ -257,19 +242,20 @@ int main(){
     User* bob = bank.create_user("Bob", "builder", "bob@builder.com", "Bob home address", "1234567890", 34);
     
     // Create accounts
-    Account* alice_saving = bank.create_account(alice->getCustomerId(), Account::Saving, 50000.0, "19/07/2023", alice->getAge());
-    Account* bob_current = bank.create_account(bob->getCustomerId(), Account::Current, 4000.0, "19/07/2023", bob->getAge());
+    Account* alice_saving = alice->create_account(alice->getCustomerId(), Account::Saving, 50000.0, "19/07/2023", alice->getAge());
+    Account* alice_current = alice->create_account(alice->getCustomerId(), Account::Current, 100001.0, "20/07/2023", alice->getAge());
 
-    // Transactions
+    alice->getDetails();
+    alice->getTotalAmount();
+    alice->getAccount();
+
+    Account* bob_current = bob->create_account(bob->getCustomerId(), Account::Current, 4000.0, "19/07/2023", bob->getAge());
+
+    //Transactions
     alice_saving->deposit(500);
     alice_saving->deposit(300);
     alice_saving->withdraw(alice_saving->Account::getType(), 20001, Account::ATM);
     alice_saving->withdraw(alice_saving->Account::getType(), 300, Account::Direct);
-
-
-
-
-    //alice->getDetails();
 
     return 0;
 
