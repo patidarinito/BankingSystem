@@ -53,6 +53,9 @@ public:
     double getAmount(){
         return amount;
     }
+    Method getMethod(){
+        return method;
+    }
 
     void getDetail(){
 
@@ -98,7 +101,11 @@ public:
     }
 
     int numberOfTransMonth(string monthYear){
-        return transactionsbymonth[monthYear].size();
+        int cnt = 0;
+        for(auto transaction : transactionsbymonth[monthYear]){
+            if(transaction->getMethod() == 1) cnt++;
+        }
+        return cnt;
     }
 
     void* withdraw(double amount, string date, Transaction::Method method, Account::Type type){
@@ -141,7 +148,6 @@ public:
                         Transaction* transaction = new Transaction(amount, date, method);
                         transactionsbydate[date].push_back(transaction);
                         transactionsbymonth[date.substr(3)].push_back(transaction);
-                        cout << "------------------------ Transaction Successful ----------------------\n";
                         cout << amount << " Amount withdrawn, Current Balance : " << this->balance << "\n";
 
                     }
@@ -205,9 +211,52 @@ public:
     int getCustomerId(){
         return customer_id;
     }
+
     int getAge(){
         return age;
     }
+
+    bool haveSavingorCurrent(){
+        if(accounts.size() > 0) return true;
+        return false;
+    }
+    
+    void getDetails(){
+        cout << "------------------ User Details --------------------\n";
+        cout << "Customer Id : " << customer_id << "\n";
+        cout << "Full Name : " <<firstName << " "<< lastName << "\n";
+        cout << "Email : " << email << "\n";
+        cout << "Address : " << address << "\n";
+        cout << "Phone Number : " << phone << "\n";
+    }
+
+    double totalDeposit(){
+        // Run loop over accounts and calculate total amount
+        double totalBalance = 0;
+        for(auto p : accounts){
+            totalBalance += p->getBalance();
+        }
+        return totalBalance;
+    }
+
+    void getTotalAmount(){
+        // Run loop over accounts and calculate total amount
+        double totalBalance = 0;
+        for(auto p : accounts){
+            totalBalance += p->getBalance();
+        }
+        cout << "------------------ Total Balance in all accounts of a User ---------------------------\n";
+        cout << "Total Balance is : " << totalBalance << "\n";
+    }
+
+    void getAccount(){
+        cout << "--------------------- User Accounts -----------------------\n";
+        for(auto account : accounts){
+            cout << "Account Number : " << account->getAccountNumber() << ", Balance : " << account->getBalance() << "\n";
+        }
+        return;
+    }
+    
     // create account
     Account* create_account(int customer_id, Account::Type type, double balance, string opening_date, int age) {
 
@@ -259,41 +308,45 @@ public:
             }
             return temp;
         }
-        // Loan account
-        else{
-            // create loan account
-
-        }
         return temp;
-        
     }
 
-    void getDetails(){
-        cout << "------------------ User Details --------------------\n";
-        cout << "Customer Id : " << customer_id << "\n";
-        cout << "Full Name : " <<firstName << " "<< lastName << "\n";
-        cout << "Email : " << email << "\n";
-        cout << "Address : " << address << "\n";
-        cout << "Phone Number : " << phone << "\n";
-    }
-
-    void getTotalAmount(){
-        // Run loop over accounts and calculate total amount
-        double totalBalance = 0;
-        for(auto p : accounts){
-            totalBalance += p->getBalance();
+    Account* create_loan_account(int customer_id, int account_duration, double loan_amount, string opening_date){
+        // Does user saving account/current account or not
+        if(!haveSavingorCurrent()){
+            cout << "--------------------- Account creation failed! -------------------------\n";
+            cout << "User dont have saving or current account to open a loan account\n";
         }
-        cout << "------------------ Total Balance in all accounts of a User ---------------------------\n";
-        cout << "Total Balance is : " << totalBalance << "\n";
+        else if(getAge() < 25){
+            cout << "--------------------- Account creation failed! -------------------------\n";
+            cout << "User dont have meet age limit criteria\n";
+        }
+        else if(account_duration < 2){
+            cout << "--------------------- Account creation failed! -------------------------\n";
+            cout << "Minimum loan account duration is of 2 years\n";
+        }
+        else if(loan_amount < 500000){
+            cout << "--------------------- Account creation failed! -------------------------\n";
+            cout << "Minimum loan amount will be issued Rs 500000\n";
+        }
+        else if(loan_amount > 0.4 * totalDeposit()){
+            cout << "--------------------- Account creation failed! -------------------------\n";
+            cout << "Maximum Loan amount can be 40\% of the total deposits\n";
+        }
+        else{
+            Account* account = new Account(customer_id, account_number++, Account::Loan, loan_amount, opening_date);
+            cout << "---------------- New Loan account added! ----------------\n";
+            cout << "Customer id : " << customer_id << "\n";
+            cout << "Account Number : " << account_number << "\n";
+            cout << "Balance : " << loan_amount << "\n";
+            cout << "-----------------------------------------------------------\n";
+            accounts.push_back(account);
+            return account;
+
+        }
     }
 
-    void getAccount(){
-        cout << "--------------------- User Accounts -----------------------\n";
-        for(auto account : accounts){
-            cout << "Account Number : " << account->getAccountNumber() << ", Balance : " << account->getBalance() << "\n";
-        }
-        return;
-    }
+    
 };
 
 class Bank{
@@ -302,12 +355,14 @@ private:
     int customer_id;
 
 public:
-    // As soon as the bank created it will initialise customerID and accountNumber
+    // As soon as the bank created it will initialise customerID
     Bank(): customer_id(1) {}
     
     // create user
     User* create_user(string firstName, string lastName, string email, string address, string phone, int age){
         User* user = new User(customer_id++, firstName, lastName, email, address, phone, age);
+        cout << "------------------------- User Created -----------------------\n";
+        cout << firstName << " is created..."<< "\n";
         users.push_back(user);
         return user;
     }
@@ -324,6 +379,8 @@ int main(){
     // Create accounts
     Account* alice_saving = alice->create_account(alice->getCustomerId(), Account::Saving, 50000.0, "19/07/2023", alice->getAge());
     Account* alice_current = alice->create_account(alice->getCustomerId(), Account::Current, 100001.0, "20/07/2023", alice->getAge());
+    Account* alice_loan = alice->create_loan_account(alice->getCustomerId(), 5, 1000000, "20/07/2023");
+
 
     alice->getDetails();
     alice->getTotalAmount();
