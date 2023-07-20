@@ -39,27 +39,62 @@ string generate_customer_id() {
 class Transaction{
 public:
     enum Method {Direct, ATM};
-
 private:
     Method method;
-    string date;          // dd/mm/yyyy
-    double amount;
-    double transaction_fee;
+    string date;         
+    long double amount;
+    long double transaction_fee;
 
 public:
-    Transaction(double amount, string date, Method method)
+    Transaction(long double amount, string date, Method method)
     : amount(amount), date(date), method(method) {}
-
-    double getAmount(){
+    long double getAmount(){
         return amount;
     }
     Method getMethod(){
         return method;
     }
-
     void getDetail(){
 
     }
+
+};
+
+class LoanAccount{
+public:
+    enum Type {HOME, CAR, PERSONAL, BUNSINESS};
+
+private:
+    // varibles
+    int account_number;
+    Type type;
+    string opening_date;
+    long double loan_amount;
+    long double balance;
+    int customer_id;
+    int interest_percentage;
+    int duration_in_years;
+
+public:
+    LoanAccount(int customer_id, int account_number, Type type, long double loan_amount, long double balance, int interest_percentage, int duration_in_years)
+        : customer_id(customer_id), account_number(account_number), type(type), loan_amount(loan_amount), balance(balance), interest_percentage(interest_percentage), duration_in_years(duration_in_years) {};
+
+    void payInstallment(int amount){
+        if(amount > loan_amount/10){
+            cout << "---------------------------- Installedment in loan account failed! -----------------------------\n";
+            cout << "Lum sum amount should be less than 10\% of the total loan amoount\n";
+        }
+        else if(amount > balance){
+            cout << "---------------------------- Installedment in loan account failed! -----------------------------\n";
+            cout << " Amount of lum sum must be less than the current balance in the loan account\n";
+        }
+        else{
+            this->balance -= amount;
+            cout << "---------------------------- Installedment to loan account succed -----------------------------\n";
+            cout << "Remaining loan amount in the loan account is : " << balance << "\n";
+        }
+    }
+    // Interest calculation based on interest rate
 
 };
 
@@ -71,13 +106,13 @@ private:
     int account_number;
     Type type;
     string opening_date;
-    double balance;
+    long double balance;
     int customer_id;
     map<string, vector<Transaction*>> transactionsbydate;
     map<string, vector<Transaction*>> transactionsbymonth;
 
 public:
-    Account(int customer_id, int account_number, Type type, double balance, string opening_date)
+    Account(int customer_id, int account_number, Type type, long double balance, string opening_date)
         : customer_id(customer_id), account_number(account_number), type(type), balance(balance), opening_date(opening_date) {}
 
     int getAccountNumber(){
@@ -88,12 +123,12 @@ public:
         return type;
     }
 
-    double getBalance(){
+    long double getBalance(){
         return balance;
     }
 
-    double totalAmountOfDay(string date){
-        double amount = 0;
+    long double totalAmountOfDay(string date){
+        long double amount = 0;
         for(auto transaction : transactionsbydate[date]){
             amount += transaction->getAmount();
         }
@@ -108,11 +143,11 @@ public:
         return cnt;
     }
 
-    void* withdraw(double amount, string date, Transaction::Method method, Account::Type type){
+    void* withdraw(long double amount, string date, Transaction::Method method, Account::Type type){
         // Saving Account
-        double totalWithdrawedInDay = totalAmountOfDay(date);
+        long double totalWithdrawedInDay = totalAmountOfDay(date);
         int numberoftransactions = numberOfTransMonth(date.substr(3));
-        if(type == 0){
+        if( type == 0 ){
             if(amount > 20000){
                 cout << "------------------- Transaction Failed! --------------------\n";
                 cout << "Single transaction can't be of more than 20,000\n";
@@ -165,12 +200,12 @@ public:
                 }
             }
         }
-
-        //Current Account
+        
+        // Current Account
         else if(type == 1){
             // Implement logic for penalty if minimum transaction not completed in month
-
-            double transactionfee = max(amount/200, 500.0);
+            long double maxpenalty = 500.0;
+            long double transactionfee = max(amount/200, maxpenalty);
             this->balance = this->balance - transactionfee - amount;
             Transaction* transaction = new Transaction(amount, date, method);
             transactionsbydate[date].push_back(transaction);
@@ -179,15 +214,9 @@ public:
             cout << amount + transactionfee << " Amount withdrawn, Current Balance : " << this->balance << "\n";
 
         }
-        //Loan Account
-        else{
-            // Later
-
-        }
-        
     }
 
-    void deposit(double amount){
+    void deposit(long double amount){
         this->balance = this->balance + amount;
 
         // Add transactions into the vector
@@ -203,6 +232,7 @@ private:
     string firstName, lastName, email, address, phone;
     int customer_id, age, account_number; 
     vector<Account*> accounts;
+    vector<LoanAccount*> laccounts;
 
 public:
     User(int customer_id, string firstName, string lastName, string email, string address, string phone, int age)
@@ -211,16 +241,13 @@ public:
     int getCustomerId(){
         return customer_id;
     }
-
     int getAge(){
         return age;
     }
-
     bool haveSavingorCurrent(){
         if(accounts.size() > 0) return true;
         return false;
     }
-    
     void getDetails(){
         cout << "------------------ User Details --------------------\n";
         cout << "Customer Id : " << customer_id << "\n";
@@ -229,26 +256,23 @@ public:
         cout << "Address : " << address << "\n";
         cout << "Phone Number : " << phone << "\n";
     }
-
-    double totalDeposit(){
+    long double totalDeposit(){
         // Run loop over accounts and calculate total amount
-        double totalBalance = 0;
+        long double totalBalance = 0;
         for(auto p : accounts){
             totalBalance += p->getBalance();
         }
         return totalBalance;
     }
-
     void getTotalAmount(){
         // Run loop over accounts and calculate total amount
-        double totalBalance = 0;
+        long double totalBalance = 0;
         for(auto p : accounts){
             totalBalance += p->getBalance();
         }
         cout << "------------------ Total Balance in all accounts of a User ---------------------------\n";
         cout << "Total Balance is : " << totalBalance << "\n";
     }
-
     void getAccount(){
         cout << "--------------------- User Accounts -----------------------\n";
         for(auto account : accounts){
@@ -258,7 +282,7 @@ public:
     }
     
     // create account
-    Account* create_account(int customer_id, Account::Type type, double balance, string opening_date, int age) {
+    Account* create_account(int customer_id, Account::Type type, long double balance, string opening_date, int age) {
 
         // Saving account
         Account* temp;
@@ -310,8 +334,7 @@ public:
         }
         return temp;
     }
-
-    Account* create_loan_account(int customer_id, int account_duration, double loan_amount, string opening_date){
+    LoanAccount* create_loan_account(int customer_id, LoanAccount::Type type, int duration_in_years, long double balance, string opening_date){
         // Does user saving account/current account or not
         if(!haveSavingorCurrent()){
             cout << "--------------------- Account creation failed! -------------------------\n";
@@ -321,27 +344,61 @@ public:
             cout << "--------------------- Account creation failed! -------------------------\n";
             cout << "User dont have meet age limit criteria\n";
         }
-        else if(account_duration < 2){
+        else if(duration_in_years < 2){
             cout << "--------------------- Account creation failed! -------------------------\n";
             cout << "Minimum loan account duration is of 2 years\n";
         }
-        else if(loan_amount < 500000){
+        else if(balance < 500000){
             cout << "--------------------- Account creation failed! -------------------------\n";
             cout << "Minimum loan amount will be issued Rs 500000\n";
         }
-        else if(loan_amount > 0.4 * totalDeposit()){
+        else if(balance > 0.4 * totalDeposit()){
             cout << "--------------------- Account creation failed! -------------------------\n";
             cout << "Maximum Loan amount can be 40\% of the total deposits\n";
         }
         else{
-            Account* account = new Account(customer_id, account_number++, Account::Loan, loan_amount, opening_date);
-            cout << "---------------- New Loan account added! ----------------\n";
-            cout << "Customer id : " << customer_id << "\n";
-            cout << "Account Number : " << account_number << "\n";
-            cout << "Balance : " << loan_amount << "\n";
-            cout << "-----------------------------------------------------------\n";
-            accounts.push_back(account);
-            return account;
+            if(type == 0){
+                LoanAccount* loan_account = new LoanAccount(customer_id, account_number, LoanAccount::HOME, balance, balance, 7, duration_in_years);
+                cout << "---------------- New Loan account added! ----------------\n";
+                cout << "Customer id : " << customer_id << "\n";
+                cout << "Account Number : " << account_number << "\n";
+                cout << "Balance : " << balance << "\n";
+                cout << "-----------------------------------------------------------\n";
+                laccounts.push_back(loan_account);
+                return loan_account;
+
+            }
+            else if(type == 1){
+                LoanAccount* loan_account = new LoanAccount(customer_id, account_number, LoanAccount::CAR, balance, balance, 8, duration_in_years);
+                cout << "---------------- New Loan account added! ----------------\n";
+                cout << "Customer id : " << customer_id << "\n";
+                cout << "Account Number : " << account_number << "\n";
+                cout << "Balance : " << balance << "\n";
+                cout << "-----------------------------------------------------------\n";
+                laccounts.push_back(loan_account);
+                return loan_account;
+            }
+            else if(type == 2){
+                LoanAccount* loan_account = new LoanAccount(customer_id, account_number, LoanAccount::PERSONAL, balance, balance, 12, duration_in_years);
+                cout << "---------------- New Loan account added! ----------------\n";
+                cout << "Customer id : " << customer_id << "\n";
+                cout << "Account Number : " << account_number << "\n";
+                cout << "Balance : " << balance << "\n";
+                cout << "-----------------------------------------------------------\n";
+                laccounts.push_back(loan_account);
+                return loan_account;
+            }
+            else{
+                LoanAccount* loan_account = new LoanAccount(customer_id, account_number, LoanAccount::BUNSINESS, balance, balance, 15, duration_in_years);
+                cout << "---------------- New Loan account added! ----------------\n";
+                cout << "Customer id : " << customer_id << "\n";
+                cout << "Account Number : " << account_number << "\n";
+                cout << "Balance : " << balance << "\n";
+                cout << "-----------------------------------------------------------\n";
+                laccounts.push_back(loan_account);
+                return loan_account;
+            }
+            
 
         }
     }
@@ -373,20 +430,22 @@ int main(){
     Bank bank;
 
     // Create Users
-    User* alice = bank.create_user("Alice", "Babu", "alice@google.com", "alice home address", "9999999999", 23);
+    User* alice = bank.create_user("Alice", "Babu", "alice@google.com", "alice home address", "9999999999", 25);
     User* bob = bank.create_user("Bob", "builder", "bob@builder.com", "Bob home address", "1234567890", 34);
-    
-    // Create accounts
-    Account* alice_saving = alice->create_account(alice->getCustomerId(), Account::Saving, 50000.0, "19/07/2023", alice->getAge());
-    Account* alice_current = alice->create_account(alice->getCustomerId(), Account::Current, 100001.0, "20/07/2023", alice->getAge());
-    Account* alice_loan = alice->create_loan_account(alice->getCustomerId(), 5, 1000000, "20/07/2023");
 
+    User* chaman = bank.create_user("chaman", "kumar", "chaman@kumar", "chaman main road", "9472398472", 25);
+    LoanAccount* chaman_laon = chaman->create_loan_account(chaman->getCustomerId(), LoanAccount::HOME, 1, 400000, "20/07/2023");
+
+    // Create accounts
+    Account* alice_saving = alice->create_account(alice->getCustomerId(), Account::Saving, 1250001.0, "19/07/2023", alice->getAge());
+    Account* alice_current = alice->create_account(alice->getCustomerId(), Account::Current, 100001.0, "20/07/2023", alice->getAge());
+    Account* bob_current = bob->create_account(bob->getCustomerId(), Account::Current, 4000.0, "19/07/2023", bob->getAge());
+    LoanAccount* alice_loan = alice->create_loan_account(alice->getCustomerId(), LoanAccount::CAR, 2, 1000000, "20/07/2023");
 
     alice->getDetails();
     alice->getTotalAmount();
     alice->getAccount();
 
-    Account* bob_current = bob->create_account(bob->getCustomerId(), Account::Current, 4000.0, "19/07/2023", bob->getAge());
 
     //Transactions
     alice_saving->deposit(500);
@@ -398,6 +457,9 @@ int main(){
     alice_saving->withdraw(500, "20/07/2023", Transaction::ATM, alice_saving->Account::getType());
     alice_saving->withdraw(500, "20/07/2023", Transaction::ATM, alice_saving->Account::getType());
     alice_saving->withdraw(500, "20/07/2023", Transaction::ATM, alice_saving->Account::getType());
+
+    // deposit into loan account
+
 
     return 0;
 
