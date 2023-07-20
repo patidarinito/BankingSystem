@@ -3,16 +3,12 @@
 #include<unordered_set>
 #include<utility>
 #include<map>
+#include<math.h>
 using namespace std;
-
-// Data Strucure to store customer details in map
-map<string, pair<vector<string>, vector<string> > > personalDetails;
-map<string, vector<string> > accountDetails;
 
 // Functions to create random customer ids and accountNumber
 const int ID_LENGTH = 6;                        // the length of the customer ID
 unordered_set<string> used_ids;                 // to keep track of used IDs
-
 
 // generates a random alphanumeric character
 char generate_random_char() {
@@ -41,36 +37,148 @@ string generate_customer_id() {
 
 
 class Transaction{
+public:
+    enum Method {Direct, ATM};
+
+private:
+    Method method;
+    string date;          // dd/mm/yyyy
+    double amount;
+    double transaction_fee;
+
+public:
+    Transaction(double amount, string date, Method method)
+    : amount(amount), date(date), method(method) {}
+
+    double getAmount(){
+        return amount;
+    }
+
+    void getDetail(){
+
+    }
 
 };
 
 class Account{
 public:
     enum Type { Saving, Current, Loan };
-    enum Method {ATM, Direct};
 
 private:
     int account_number;
     Type type;
-    Method method;
     string opening_date;
     double balance;
     int customer_id;
-    vector<Transaction*> transactions;
+    map<string, vector<Transaction*>> transactionsbydate;
+    map<string, vector<Transaction*>> transactionsbymonth;
 
 public:
     Account(int customer_id, int account_number, Type type, double balance, string opening_date)
         : customer_id(customer_id), account_number(account_number), type(type), balance(balance), opening_date(opening_date) {}
 
-    // deposit
     int getAccountNumber(){
         return account_number;
     }
+
     Type getType(){
         return type;
     }
+
     double getBalance(){
         return balance;
+    }
+
+    double totalAmountOfDay(string date){
+        double amount = 0;
+        for(auto transaction : transactionsbydate[date]){
+            amount += transaction->getAmount();
+        }
+        return amount;
+    }
+
+    int numberOfTransMonth(string monthYear){
+        return transactionsbymonth[monthYear].size();
+    }
+
+    void* withdraw(double amount, string date, Transaction::Method method, Account::Type type){
+        // Saving Account
+        double totalWithdrawedInDay = totalAmountOfDay(date);
+        int numberoftransactions = numberOfTransMonth(date.substr(3));
+        if(type == 0){
+            if(amount > 20000){
+                cout << "------------------- Transaction Failed! --------------------\n";
+                cout << "Single transaction can't be of more than 20,000\n";
+            }
+            else if(totalWithdrawedInDay + amount > 50000){
+                cout << "------------------- Transaction Failed! --------------------\n";
+                cout << "Maximum of 50000 can be withdrawed in a single day\n";
+            }
+            else if(amount > getBalance()){
+                cout << "------------------- Transaction Failed! --------------------\n";
+                cout << "Account have insufficient Balance\n";
+            }
+            else{
+                // Direct from bank
+                if(method == 0){
+                    this->balance = this->balance - amount;
+
+                    // Add transaction
+                    Transaction* transaction = new Transaction(amount, date, method);
+                    transactionsbydate[date].push_back(transaction);
+                    transactionsbymonth[date.substr(3)].push_back(transaction);
+                    cout << "------------------------ Transaction Successful ----------------------\n";
+                    cout << amount << " Amount withdrawn, Current Balance : " << this->balance << "\n";
+                }
+                // With Draw from ATM
+                else{
+                    if(numberoftransactions >= 5){
+                        cout << "-------------- ATM transaction of a month Exceeded -------------------\n";
+                        cout << "Penalty of 500 will be imposed\n";
+                        this->balance = this->balance - amount - 500;
+                        
+                        // Add transaction
+                        Transaction* transaction = new Transaction(amount, date, method);
+                        transactionsbydate[date].push_back(transaction);
+                        transactionsbymonth[date.substr(3)].push_back(transaction);
+                        cout << "------------------------ Transaction Successful ----------------------\n";
+                        cout << amount << " Amount withdrawn, Current Balance : " << this->balance << "\n";
+
+                    }
+                    else{
+                        this->balance = this->balance - amount;
+                        
+                        // Add transaction
+                        Transaction* transaction = new Transaction(amount, date, method);
+                        transactionsbydate[date].push_back(transaction);
+                        transactionsbymonth[date.substr(3)].push_back(transaction);
+                        cout << "------------------------ Transaction Successful ----------------------\n";
+                        cout << amount << " Amount withdrawn, Current Balance : " << this->balance << "\n";
+                    }
+
+                }
+            }
+        }
+
+        //Current Account
+        else if(type == 1){
+            // Implement logic for penalty if minimum transaction not completed in month
+
+            double transactionfee = max(amount/200, 500.0);
+            this->balance = this->balance - transactionfee - amount;
+            Transaction* transaction = new Transaction(amount, date, method);
+            transactionsbydate[date].push_back(transaction);
+            transactionsbymonth[date.substr(3)].push_back(transaction);
+            cout << "------------------------ Transaction Successful ----------------------\n";
+            cout << amount + transactionfee << " Amount withdrawn, Current Balance : " << this->balance << "\n";
+
+        }
+        //Loan Account
+        else{
+            // Later
+
+        }
+        
     }
 
     void deposit(double amount){
@@ -81,35 +189,6 @@ public:
         cout << "---------------------- Deposit successful----------------------\n";
         cout << "Amount " << amount << " added in your bank account. Current balance is " << balance << "\n";
     }
-
-    void withdraw(Type type, double amount, Method method){
-        // Withdraw from Saving account
-        if(type == 0){
-            if(amount > 20000){
-                cout << "------------------------ Transaction error! ----------------------\n";
-                cout << "Amount greater than Rs 20000 cant be withdrawn in one transaction!\n";
-                return;
-            }
-            else{
-                if(method == 0){
-                    
-                }
-                else{
-
-                }
-            }
-        }
-        else if(type == 1){
-
-        }
-        else{
-
-        }
-
-
-    }
-
-
 
 };
 
@@ -198,13 +277,14 @@ public:
         cout << "Phone Number : " << phone << "\n";
     }
 
-    double getTotalAmount(){
+    void getTotalAmount(){
         // Run loop over accounts and calculate total amount
         double totalBalance = 0;
         for(auto p : accounts){
             totalBalance += p->getBalance();
         }
-        return totalBalance;
+        cout << "------------------ Total Balance in all accounts of a User ---------------------------\n";
+        cout << "Total Balance is : " << totalBalance << "\n";
     }
 
     void getAccount(){
@@ -254,8 +334,13 @@ int main(){
     //Transactions
     alice_saving->deposit(500);
     alice_saving->deposit(300);
-    alice_saving->withdraw(alice_saving->Account::getType(), 20001, Account::ATM);
-    alice_saving->withdraw(alice_saving->Account::getType(), 300, Account::Direct);
+
+    alice_saving->withdraw(500, "20/07/2023", Transaction::ATM, alice_saving->Account::getType());
+    alice_saving->withdraw(500, "20/07/2023", Transaction::ATM, alice_saving->Account::getType());
+    alice_saving->withdraw(500, "20/07/2023", Transaction::ATM, alice_saving->Account::getType());
+    alice_saving->withdraw(500, "20/07/2023", Transaction::ATM, alice_saving->Account::getType());
+    alice_saving->withdraw(500, "20/07/2023", Transaction::ATM, alice_saving->Account::getType());
+    alice_saving->withdraw(500, "20/07/2023", Transaction::ATM, alice_saving->Account::getType());
 
     return 0;
 
