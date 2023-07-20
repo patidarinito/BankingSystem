@@ -42,13 +42,13 @@ public:
 private:
     Method method;
     string date;         
-    long double amount;
-    long double transaction_fee;
+    double amount;
+    double transaction_fee;
 
 public:
-    Transaction(long double amount, string date, Method method)
+    Transaction(double amount, string date, Method method)
     : amount(amount), date(date), method(method) {}
-    long double getAmount(){
+    double getAmount(){
         return amount;
     }
     Method getMethod(){
@@ -69,14 +69,14 @@ private:
     int account_number;
     Type type;
     string opening_date;
-    long double loan_amount;
-    long double balance;
+    double loan_amount;
+    double balance;
     int customer_id;
     int interest_percentage;
     int duration_in_years;
 
 public:
-    LoanAccount(int customer_id, int account_number, Type type, long double loan_amount, long double balance, int interest_percentage, int duration_in_years)
+    LoanAccount(int customer_id, int account_number, Type type, double loan_amount, double balance, int interest_percentage, int duration_in_years)
         : customer_id(customer_id), account_number(account_number), type(type), loan_amount(loan_amount), balance(balance), interest_percentage(interest_percentage), duration_in_years(duration_in_years) {};
 
     void payInstallment(int amount){
@@ -106,35 +106,34 @@ private:
     int account_number;
     Type type;
     string opening_date;
-    long double balance;
+    double balance;
     int customer_id;
     map<string, vector<Transaction*>> transactionsbydate;
     map<string, vector<Transaction*>> transactionsbymonth;
 
 public:
-    Account(int customer_id, int account_number, Type type, long double balance, string opening_date)
+    Account(int customer_id, int account_number, Type type, double balance, string opening_date)
         : customer_id(customer_id), account_number(account_number), type(type), balance(balance), opening_date(opening_date) {}
 
     int getAccountNumber(){
         return account_number;
     }
-
     Type getType(){
         return type;
     }
-
-    long double getBalance(){
+    double getBalance(){
         return balance;
     }
-
-    long double totalAmountOfDay(string date){
-        long double amount = 0;
+    void setBalance(double amount){
+        this->balance = amount;
+    }
+    double totalAmountOfDay(string date){
+        double amount = 0;
         for(auto transaction : transactionsbydate[date]){
             amount += transaction->getAmount();
         }
         return amount;
     }
-
     int numberOfTransMonth(string monthYear){
         int cnt = 0;
         for(auto transaction : transactionsbymonth[monthYear]){
@@ -142,10 +141,9 @@ public:
         }
         return cnt;
     }
-
-    void* withdraw(long double amount, string date, Transaction::Method method, Account::Type type){
+    void* withdraw(double amount, string date, Transaction::Method method, Account::Type type){
         // Saving Account
-        long double totalWithdrawedInDay = totalAmountOfDay(date);
+        double totalWithdrawedInDay = totalAmountOfDay(date);
         int numberoftransactions = numberOfTransMonth(date.substr(3));
         if( type == 0 ){
             if(amount > 20000){
@@ -204,8 +202,8 @@ public:
         // Current Account
         else if(type == 1){
             // Implement logic for penalty if minimum transaction not completed in month
-            long double maxpenalty = 500.0;
-            long double transactionfee = max(amount/200, maxpenalty);
+            double maxpenalty = 500.0;
+            double transactionfee = max(amount/200, maxpenalty);
             this->balance = this->balance - transactionfee - amount;
             Transaction* transaction = new Transaction(amount, date, method);
             transactionsbydate[date].push_back(transaction);
@@ -215,8 +213,7 @@ public:
 
         }
     }
-
-    void deposit(long double amount){
+    void deposit(double amount){
         this->balance = this->balance + amount;
 
         // Add transactions into the vector
@@ -256,9 +253,9 @@ public:
         cout << "Address : " << address << "\n";
         cout << "Phone Number : " << phone << "\n";
     }
-    long double totalDeposit(){
+    double totalDeposit(){
         // Run loop over accounts and calculate total amount
-        long double totalBalance = 0;
+        double totalBalance = 0;
         for(auto p : accounts){
             totalBalance += p->getBalance();
         }
@@ -266,7 +263,7 @@ public:
     }
     void getTotalAmount(){
         // Run loop over accounts and calculate total amount
-        long double totalBalance = 0;
+        double totalBalance = 0;
         for(auto p : accounts){
             totalBalance += p->getBalance();
         }
@@ -280,9 +277,11 @@ public:
         }
         return;
     }
-    
+    vector<Account*> getuserAccounts(){
+        return accounts;
+    }
     // create account
-    Account* create_account(int customer_id, Account::Type type, long double balance, string opening_date, int age) {
+    Account* create_account(int customer_id, Account::Type type, double balance, string opening_date, int age) {
 
         // Saving account
         Account* temp;
@@ -334,7 +333,7 @@ public:
         }
         return temp;
     }
-    LoanAccount* create_loan_account(int customer_id, LoanAccount::Type type, int duration_in_years, long double balance, string opening_date){
+    LoanAccount* create_loan_account(int customer_id, LoanAccount::Type type, int duration_in_years, double balance, string opening_date){
         // Does user saving account/current account or not
         if(!haveSavingorCurrent()){
             cout << "--------------------- Account creation failed! -------------------------\n";
@@ -423,6 +422,35 @@ public:
         users.push_back(user);
         return user;
     }
+    void monthEnd(){
+        // 6% in all saving account
+        for(auto user : users){
+            for(auto account : user->getuserAccounts()){
+                // for each saving account add 6% interest
+                
+                if(account->getType() == 0){
+                    double balance = account->getBalance();
+                    double interest = (balance)/200;
+                    account->setBalance(balance + interest);
+
+                    // NRV penalty
+                    double NRV_rate = 0.01;
+                    double NRV_penalty = 100000 > balance ? (100000 - balance)*NRV_rate : 0;
+                    account->setBalance(balance - NRV_penalty);
+                }
+                // current account
+                else if(account->getType() == 1){
+                    double balance = account->getBalance();
+                    
+                    // NRV penalty
+                    double NRV_rate = 0.01;
+                    double NRV_penalty = 5000000 > balance ? (5000000 - balance)*NRV_rate : 0;
+                    account->setBalance(balance - NRV_penalty);
+                
+                }
+            }
+        }
+    }
 };
 
 int main(){
@@ -432,19 +460,28 @@ int main(){
     // Create Users
     User* alice = bank.create_user("Alice", "Babu", "alice@google.com", "alice home address", "9999999999", 25);
     User* bob = bank.create_user("Bob", "builder", "bob@builder.com", "Bob home address", "1234567890", 34);
-
     User* chaman = bank.create_user("chaman", "kumar", "chaman@kumar", "chaman main road", "9472398472", 25);
-    LoanAccount* chaman_laon = chaman->create_loan_account(chaman->getCustomerId(), LoanAccount::HOME, 1, 400000, "20/07/2023");
+    
+    LoanAccount* chaman_laon = chaman->create_loan_account(chaman->getCustomerId(), LoanAccount::HOME, 2, 500000, "20/07/2023");
 
     // Create accounts
-    Account* alice_saving = alice->create_account(alice->getCustomerId(), Account::Saving, 1250001.0, "19/07/2023", alice->getAge());
+    Account* alice_saving = alice->create_account(alice->getCustomerId(), Account::Saving, 10000, "19/07/2023", alice->getAge());
     Account* alice_current = alice->create_account(alice->getCustomerId(), Account::Current, 100001.0, "20/07/2023", alice->getAge());
     Account* bob_current = bob->create_account(bob->getCustomerId(), Account::Current, 4000.0, "19/07/2023", bob->getAge());
-    LoanAccount* alice_loan = alice->create_loan_account(alice->getCustomerId(), LoanAccount::CAR, 2, 1000000, "20/07/2023");
+    LoanAccount* alice_loan = alice->create_loan_account(alice->getCustomerId(), LoanAccount::CAR, 2, 500000, "20/07/2023");
+
+    bank.monthEnd();
 
     alice->getDetails();
     alice->getTotalAmount();
     alice->getAccount();
+
+
+    alice_loan->payInstallment(100000);
+    alice_loan->payInstallment(40000);
+    alice_loan->payInstallment(10000);
+
+    
 
 
     //Transactions
